@@ -1,4 +1,5 @@
 # General imports
+import os
 import sys
 import cv2
 from PIL import Image
@@ -6,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torchvision.transforms as transforms
+from torchvision.transforms import Compose
+import time
+import ntpath
 
 # Fix for MacOS OpenMP error:
 # OMP: Error #15: Initializing libiomp5.dylib, but found libomp.dylib already initialized.
@@ -32,12 +36,21 @@ from lib.core.config import cfg, merge_cfg_from_file
 from lib.utils.logging import setup_logging, SmoothedValue
 from lib.utils.evaluate_depth_error import evaluate_rel_err, recover_metric_depth
 
+# MiDaS imports
+from midas.midas_net import MidasNet
+from midas.midas_net_custom import MidasNet_small
+from midas.transforms import Resize, NormalizeImage, PrepareForNet
+
+# SGDepth imports
+from merged_depth.nets.SGDepth.models.sgdepth import SGDepth
+
 class InferenceEngine:
-  def __init__(self, device='cpu'):
+  def __init__(self):
+    self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Setup AdaBins models
-    self.adabins_nyu_infer_helper = InferenceHelper(dataset='nyu', device=device)
-    self.adabins_kitti_infer_helper = InferenceHelper(dataset='kitti', device=device)
+    self.adabins_nyu_infer_helper = InferenceHelper(dataset='nyu', device=self.device)
+    self.adabins_kitti_infer_helper = InferenceHelper(dataset='kitti', device=self.device)
 
     # Setup DiverseDepth model
     class DiverseDepthArgs:
@@ -52,9 +65,57 @@ class InferenceEngine:
     # load checkpoint
     load_ckpt(diverse_depth_args, self.diverse_depth_model)
     # TODO: update this - see how `device` argument should be processsed
-    if device != 'cpu':
+    if self.device == "cuda":
       self.diverse_depth_model.cuda()
     self.diverse_depth_model = torch.nn.DataParallel(self.diverse_depth_model)
+
+    # Setup MiDaS model
+    self.midas_model_path = "./pretrained/MiDaS_f6b98070.pt"
+    midas_model_type = "large"
+
+    # load network
+    if midas_model_type == "large":
+      self.midas_model = MidasNet(self.midas_model_path, non_negative=True)
+      self.midas_net_w, self.midas_net_h = 384, 384
+    elif midas_model_type == "small":
+      self.midas_model = MidasNet_small(self.midas_model_path, features=64, backbone="efficientnet_lite3",
+        exportable=True, non_negative=True, blocks={'expand': True})
+      self.midas_net_w, self.midas_net_h = 256, 256
+
+    self.midas_transform = Compose(
+      [
+        Resize(
+          self.midas_net_w,
+          self.midas_net_h,
+          resize_target=None,
+          keep_aspect_ratio=True,
+          ensure_multiple_of=32,
+          resize_method="upper_bound",
+          image_interpolation_method=cv2.INTER_CUBIC,
+        ),
+        NormalizeImage(mean=[0.485, 0.456, 0.406],
+                      std=[0.229, 0.224, 0.225]),
+        PrepareForNet(),
+      ]
+    )
+
+    self.midas_model.eval()
+
+    self.midas_optimize = True
+    if self.midas_optimize == True:
+      rand_example = torch.rand(1, 3, self.midas_net_h, self.midas_net_w)
+      self.midas_model(rand_example)
+      traced_script_module = torch.jit.trace(self.midas_model, rand_example)
+      self.midas_model = traced_script_module
+
+      if self.device == "cuda":
+        self.midas_model = self.midas_model.to(memory_format=torch.channels_last)
+        self.midas_model = self.midas_model.half()
+
+    self.midas_model.to(torch.device(self.device))
+
+    # Setup SGDepth model
+    self.sgdepth_model = InferenceEngine.SgDepthInference()
 
   def adabins_nyu_predict(self, image):
     _, predicted_depth = self.adabins_nyu_infer_helper.predict_pil(image)
@@ -76,6 +137,196 @@ class InferenceEngine:
     predicted_depth = predicted_depth.squeeze()
     return predicted_depth
 
+  def midas_predict(self, image_path):
+    """Run MonoDepthNN to compute depth maps.
+
+    Args:
+      image_path (str): path to input image
+    """
+
+    def read_image(path):
+      """Read image and output RGB image (0-1).
+
+      Args:
+          path (str): path to file
+
+      Returns:
+          array: RGB image (0-1)
+      """
+      img = cv2.imread(path)
+
+      if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+      img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+
+      return img
+
+    # get input
+    img = read_image(image_path)
+    img_input = self.midas_transform({"image": img})["image"]
+
+    # compute
+    with torch.no_grad():
+      sample = torch.from_numpy(img_input).to(torch.device(self.device)).unsqueeze(0)
+      if self.midas_optimize == True and self.device == "cuda":
+        sample = sample.to(memory_format=torch.channels_last)
+        sample = sample.half()
+      prediction = self.midas_model.forward(sample)
+      prediction = (
+        torch.nn.functional.interpolate(
+          prediction.unsqueeze(1),
+          size=img.shape[:2],
+          mode="bicubic",
+          align_corners=False,
+        )
+        .squeeze()
+        .cpu()
+        .numpy()
+      )
+
+      depth_min = prediction.min()
+      depth_max = prediction.max()
+
+      prediction = (prediction - depth_min) / (depth_max - depth_min)
+      prediction *= 10
+
+      return prediction
+
+  class SgDepthInference:
+    """Inference without harness or dataloader"""
+
+    def __init__(self):
+      self.model_path = "./pretrained/SGDepth_full.pth"
+      self.num_classes = 20
+      self.depth_min = 0.1
+      self.depth_max = 100
+      self.all_time = []
+
+      self.labels = (('CLS_ROAD', (128, 64, 128)),
+                      ('CLS_SIDEWALK', (244, 35, 232)),
+                      ('CLS_BUILDING', (70, 70, 70)),
+                      ('CLS_WALL', (102, 102, 156)),
+                      ('CLS_FENCE', (190, 153, 153)),
+                      ('CLS_POLE', (153, 153, 153)),
+                      ('CLS_TRLIGHT', (250, 170, 30)),
+                      ('CLS_TRSIGN', (220, 220, 0)),
+                      ('CLS_VEGT', (107, 142, 35)),
+                      ('CLS_TERR', (152, 251, 152)),
+                      ('CLS_SKY', (70, 130, 180)),
+                      ('CLS_PERSON', (220, 20, 60)),
+                      ('CLS_RIDER', (255, 0, 0)),
+                      ('CLS_CAR', (0, 0, 142)),
+                      ('CLS_TRUCK', (0, 0, 70)),
+                      ('CLS_BUS', (0, 60, 100)),
+                      ('CLS_TRAIN', (0, 80, 100)),
+                      ('CLS_MCYCLE', (0, 0, 230)),
+                      ('CLS_BCYCLE', (119, 11, 32)),
+                      )
+
+      self.init_model()
+
+    def init_model(self):
+      sgdepth = SGDepth
+
+      with torch.no_grad():
+        # init 'empty' model
+        self.model = sgdepth(
+            1,             # opt.model_split_pos
+            18,            # opt.model_num_layers
+            0.9,           # opt.train_depth_grad_scale
+            0.1,           # opt.train_segmentation_grad_scale
+            'pretrained',  # opt.train_weights_init
+            4,             # opt.model_depth_resolutions
+            18,            # opt.model_num_layers_pose
+        )
+
+        # load weights (copied from state manager)
+        state = self.model.state_dict()
+        to_load = torch.load(self.model_path)
+        for (k, v) in to_load.items():
+          if k not in state:
+            print(f"    - WARNING: Model file contains unknown key {k} ({list(v.shape)})")
+
+        for (k, v) in state.items():
+          if k not in to_load:
+            print(f"    - WARNING: Model file does not contain key {k} ({list(v.shape)})")
+
+          else:
+            state[k] = to_load[k]
+
+        self.model.load_state_dict(state)
+        self.model = self.model.eval() #.cuda()  # for inference model should be in eval mode and on gpu
+
+    def load_image(self, image):
+      self.image = image
+      self.image_o_width, self.image_o_height = self.image.size
+
+      resize = transforms.Resize((192, 640))
+      image = resize(self.image)  # resize to argument size
+
+      #center_crop = transforms.CenterCrop((opt.inference_crop_height, opt.inference_crop_width))
+      #image = center_crop(image)  # crop to input size
+
+      to_tensor = transforms.ToTensor()  # transform to tensor
+
+      self.input_image = to_tensor(image)  # save tensor image to self.input_image for saving later
+      image = self.normalize(self.input_image)
+
+      image = image.unsqueeze(0).float() #.cuda()
+
+      # simulate structure of batch:
+      image_dict = {('color_aug', 0, 0): image}  # dict
+      image_dict[('color', 0, 0)] = image
+      image_dict['domain'] = ['cityscapes_val_seg', ]
+      image_dict['purposes'] = [['segmentation', ], ['depth', ]]
+      image_dict['num_classes'] = torch.tensor([self.num_classes])
+      image_dict['domain_idx'] = torch.tensor(0)
+      self.batch = (image_dict,)  # batch tuple
+
+    def normalize(self, tensor):
+      mean = (0.485, 0.456, 0.406)
+      std = (0.229, 0.224, 0.225)
+
+      normalize = transforms.Normalize(mean, std)
+      tensor = normalize(tensor)
+
+      return tensor
+
+    def get_depth_meters(self, image):
+      # load image and transform it in necessary batch format
+      self.load_image(image)
+
+      start = time.time()
+      with torch.no_grad():
+          output = self.model(self.batch) # forward pictures
+
+      self.all_time.append(time.time() - start)
+      start = 0
+
+      disps_pred = output[0]["disp", 0] # depth results
+      segs_pred = output[0]['segmentation_logits', 0] # seg results
+
+      segs_pred = segs_pred.exp().cpu()
+      segs_pred = segs_pred.numpy()  # transform preds to np array
+      segs_pred = segs_pred.argmax(1)  # get the highest score for classes per pixel
+
+      depth_pred = disps_pred
+
+      depth_pred = np.array(depth_pred[0][0].cpu())  # depth predictions to numpy and CPU
+
+      def scale_depth(disp):
+          min_disp = 1 / self.depth_max
+          max_disp = 1 / self.depth_min
+          return min_disp + (max_disp - min_disp) * disp
+
+      depth_pred = scale_depth(depth_pred)  # Depthmap in meters
+
+      return depth_pred
+
+  def sgdepth_predict(self, image):
+    return self.sgdepth_model.get_depth_meters(image)
+
   def predict_depth(self, path):
     image = Image.open(path)
     original = cv2.imread(path)
@@ -93,15 +344,36 @@ class InferenceEngine:
     scale_factor = adabins_avg_max / diverse_depth_max
     diverse_depth_prediction *= scale_factor
 
-    average_depth = (adabins_nyu_prediction + adabins_kitti_prediction + diverse_depth_prediction) / 3
+    # Predict with MiDaS model
+    midas_depth_prediction = self.midas_predict(path)
+    midas_depth_prediction = (midas_depth_prediction - np.max(midas_depth_prediction)) * -1
 
-    display = np.vstack([original, colorize_depth(average_depth)])
+    # Predict with SGDepth
+    sgdepth_depth_prediction = self.sgdepth_predict(image)
+    sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (adabins_nyu_prediction.shape[1], adabins_nyu_prediction.shape[0]))
 
-    cv2.imwrite("output.png", display)
+    average_depth = (adabins_nyu_prediction + adabins_nyu_prediction +
+      adabins_kitti_prediction + diverse_depth_prediction + midas_depth_prediction + sgdepth_depth_prediction) / 6
+
+    return original, average_depth, colorize_depth(average_depth)
 
 def main():
+
+  def path_leaf(path):
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
+
   engine = InferenceEngine()
-  engine.predict_depth("./test/input/00.png")
+
+  path = "./test/input/00.png"
+  path_leaf = path_leaf(path)
+  filename_minus_ext = os.path.splitext(path_leaf)[0]
+  ext = os.path.splitext(path)[1]
+
+  image, depth, colorized_depth = engine.predict_depth(path)
+  display = np.vstack([image, colorized_depth])
+
+  cv2.imwrite("./test/output/" + filename_minus_ext + "_depth" + ext, display)
 
 if __name__ == '__main__':
   main()

@@ -1,6 +1,6 @@
 import matplotlib
 
-def colorize_depth(arr, vmin=0.1, vmax=6, cmap='plasma_r', ignore=-1):
+def colorize_depth(arr, vmin=0.1, vmax=10, cmap='plasma_r', ignore=-1):
   invalid_mask = arr == ignore
 
   # normalize
