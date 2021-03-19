@@ -44,7 +44,6 @@ def download_file_from_google_drive(id, destination):
   save_response_content(response, destination)
 
 def download_models(gdrive_fileid, output_path):
-  output_path = os.path.join(output_directory, output_filename)
   if not os.path.exists(output_path):
     download_file_from_google_drive(gdrive_fileid, output_path)
 
