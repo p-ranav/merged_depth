@@ -15,5 +15,7 @@ def scale_torch(img, scale):
   img = img.astype(np.float32)
   img /= scale
   img = torch.from_numpy(img.copy())
+  if torch.cuda.is_available():
+    img = img.to(torch.device("cuda"))
   img = transforms.Normalize(cfg.DATASET.RGB_PIXEL_MEANS, cfg.DATASET.RGB_PIXEL_VARS)(img)
   return img
