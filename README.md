@@ -1,4 +1,6 @@
-# merged_depth
+<p align="center">
+  <img height="90" src=".logo/logo.png"/>  
+</p>
 
 ## Quick Start
 
