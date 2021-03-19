@@ -3,14 +3,6 @@
 
 FORK of the official implementation of [Adabins: Depth Estimation using adaptive bins](https://arxiv.org/abs/2011.14141)
 
-## Quick Start
-
-Run the AdaBins depth prediction on a .png input file using:
-
-```console
-$ python3 -m models.test_pretrained
-```
-
 ## Download links
 * You can download the pretrained models "AdaBins_nyu.pt" and "AdaBins_kitti.pt" from [here](https://drive.google.com/drive/folders/1nYyaQXOBjNdUJDsmJpcRpu6oE55aQoLA?usp=sharing)
 * You can download the predicted depths in 16-bit format for NYU-Depth-v2 official test set and KITTI Eigen split test set [here](https://drive.google.com/drive/folders/1b3nfm8lqrvUjtYGmsqA5gptNQ8vPlzzS?usp=sharing)

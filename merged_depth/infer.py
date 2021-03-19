@@ -197,6 +197,7 @@ class InferenceEngine:
     """Inference without harness or dataloader"""
 
     def __init__(self):
+      self.device = "cuda" if torch.cuda.is_available() else "cpu"
       self.model_path = "./pretrained/SGDepth_full.pth"
       self.num_classes = 20
       self.depth_min = 0.1
@@ -256,7 +257,9 @@ class InferenceEngine:
             state[k] = to_load[k]
 
         self.model.load_state_dict(state)
-        self.model = self.model.eval() #.cuda()  # for inference model should be in eval mode and on gpu
+        self.model = self.model.eval()
+        if self.device == "cuda":
+          self.model.cuda()
 
     def load_image(self, image):
       self.image = image
@@ -273,7 +276,9 @@ class InferenceEngine:
       self.input_image = to_tensor(image)  # save tensor image to self.input_image for saving later
       image = self.normalize(self.input_image)
 
-      image = image.unsqueeze(0).float() #.cuda()
+      image = image.unsqueeze(0).float()
+      if self.device == "cuda":
+        image = image.cuda()
 
       # simulate structure of batch:
       image_dict = {('color_aug', 0, 0): image}  # dict
@@ -365,15 +370,17 @@ def main():
 
   engine = InferenceEngine()
 
-  path = "./test/input/00.png"
-  path_leaf = path_leaf(path)
-  filename_minus_ext = os.path.splitext(path_leaf)[0]
-  ext = os.path.splitext(path)[1]
+  for (dirpath, dirnames, filenames) in os.walk("./test/input"):
+    for file in sorted(filenames):
+      if ".png" in file or ".jpeg" in file:
+        print("Predicting depth for image", file)
+        path = os.path.join(dirpath, file)
+        filename_minus_ext, ext = os.path.splitext(file)
 
-  image, depth, colorized_depth = engine.predict_depth(path)
-  display = np.vstack([image, colorized_depth])
+        image, depth, colorized_depth = engine.predict_depth(path)
+        display = np.vstack([image, colorized_depth])
 
-  cv2.imwrite("./test/output/" + filename_minus_ext + "_depth" + ext, display)
+        cv2.imwrite(os.path.join("./test/output", filename_minus_ext + "_depth" + ext), display)
 
 if __name__ == '__main__':
   main()
