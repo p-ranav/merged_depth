@@ -133,7 +133,7 @@ class InferenceEngine:
     img_torch = scale_torch(image, 255)
     img_torch = img_torch[np.newaxis, :]
     predicted_depth, _ = self.diverse_depth_model.module.depth_model(img_torch)
-    predicted_depth = predicted_depth.detach().numpy().to(torch.device("cpu"))
+    predicted_depth = predicted_depth.detach().cpu().numpy()
     predicted_depth = predicted_depth.squeeze()
     return predicted_depth
 
