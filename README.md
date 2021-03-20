@@ -2,6 +2,8 @@
   <img height="90" src=".logo/logo.png"/>  
 </p>
 
+`merged_depth` runs (1) [AdaBins](https://github.com/shariqfarooq123/AdaBins) (NYU + KITTI models), (2) [DiverseDepth](https://github.com/YvanYin/DiverseDepth), (3) [MiDaS](https://github.com/intel-isl/MiDaS), and (4) [SGDepth](https://github.com/ifnspaml/SGDepth), and calculates the average predicted depth.
+
 ## Quick Start
 
 ```console
