@@ -21,6 +21,7 @@ sys.path.append("merged_depth/nets/AdaBins")
 sys.path.append("merged_depth/nets/DiverseDepth")
 sys.path.append("merged_depth/nets/MiDaS")
 sys.path.append("merged_depth/nets/SGDepth")
+sys.path.append("merged_depth/nets/monodepth2")
 
 # Helper functions
 from merged_depth.utils.colorize_depth import colorize_depth
@@ -43,6 +44,10 @@ from midas.transforms import Resize, NormalizeImage, PrepareForNet
 
 # SGDepth imports
 from merged_depth.nets.SGDepth.models.sgdepth import SGDepth
+
+# Monodepth2 imports
+import networks
+from layers import disp_to_depth
 
 class InferenceEngine:
   def __init__(self):
@@ -116,6 +121,35 @@ class InferenceEngine:
 
     # Setup SGDepth model
     self.sgdepth_model = InferenceEngine.SgDepthInference()
+
+    # Setup monodepth2 model
+    self.monodepth2_model_path = "pretrained/monodepth2_mono+stereo_640x192"
+    monodepth2_device = torch.device(self.device)
+    encoder_path = os.path.join(self.monodepth2_model_path, "encoder.pth")
+    depth_decoder_path = os.path.join(self.monodepth2_model_path, "depth.pth")
+
+    # LOADING PRETRAINED MODEL
+    print("   Loading Monodepth2 pretrained encoder")
+    self.monodepth2_encoder = networks.ResnetEncoder(18, False)
+    loaded_dict_enc = torch.load(encoder_path, map_location=monodepth2_device)
+
+    # extract the height and width of image that this model was trained with
+    self.feed_height = loaded_dict_enc['height']
+    self.feed_width = loaded_dict_enc['width']
+    filtered_dict_enc = {k: v for k, v in loaded_dict_enc.items() if k in self.monodepth2_encoder.state_dict()}
+    self.monodepth2_encoder.load_state_dict(filtered_dict_enc)
+    self.monodepth2_encoder.to(monodepth2_device)
+    self.monodepth2_encoder.eval()
+
+    print("   Loading pretrained decoder")
+    self.monodepth2_depth_decoder = networks.DepthDecoder(
+        num_ch_enc=self.monodepth2_encoder.num_ch_enc, scales=range(4))
+
+    loaded_dict = torch.load(depth_decoder_path, map_location=monodepth2_device)
+    self.monodepth2_depth_decoder.load_state_dict(loaded_dict)
+
+    self.monodepth2_depth_decoder.to(monodepth2_device)
+    self.monodepth2_depth_decoder.eval()
 
   def adabins_nyu_predict(self, image):
     _, predicted_depth = self.adabins_nyu_infer_helper.predict_pil(image)
@@ -332,6 +366,27 @@ class InferenceEngine:
   def sgdepth_predict(self, image):
     return self.sgdepth_model.get_depth_meters(image)
 
+  def monodepth2_predict(self, input_image):
+    original_width, original_height = input_image.size
+    input_image = input_image.resize((self.feed_width, self.feed_height), Image.LANCZOS)
+    input_image = transforms.ToTensor()(input_image).unsqueeze(0)
+
+    device = torch.device(self.device)
+    input_image = input_image.to(device)
+    features = self.monodepth2_encoder(input_image)
+    outputs = self.monodepth2_depth_decoder(features)
+
+    disp = outputs[("disp", 0)]
+    disp_resized = torch.nn.functional.interpolate(
+        disp, (original_height, original_width), mode="bilinear", align_corners=False)
+
+    scaled_disp, _ = disp_to_depth(disp, 0.1, 10)
+
+    predicted_depth = scaled_disp.detach().cpu().numpy()
+    predicted_depth = predicted_depth.squeeze()
+    predicted_depth = cv2.resize(predicted_depth, (original_width, original_height))
+    return predicted_depth
+
   def predict_depth(self, path):
     image = Image.open(path)
     original = cv2.imread(path)
@@ -357,8 +412,12 @@ class InferenceEngine:
     sgdepth_depth_prediction = self.sgdepth_predict(image)
     sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (adabins_nyu_prediction.shape[1], adabins_nyu_prediction.shape[0]))
 
+    # Predict with monodepth2
+    monodepth2_depth_prediction = self.monodepth2_predict(image)
+    print(monodepth2_depth_prediction)
+
     average_depth = (adabins_nyu_prediction + adabins_nyu_prediction +
-      adabins_kitti_prediction + diverse_depth_prediction + midas_depth_prediction + sgdepth_depth_prediction) / 6
+      adabins_kitti_prediction + diverse_depth_prediction + midas_depth_prediction + sgdepth_depth_prediction + monodepth2_depth_prediction) / 7
 
     return original, average_depth, colorize_depth(average_depth)
 

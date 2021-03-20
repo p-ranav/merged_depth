@@ -1,6 +1,7 @@
 import matplotlib
+import cv2
 
-def colorize_depth(arr, vmin=0.1, vmax=10, cmap='plasma_r', ignore=-1):
+def colorize_depth(arr, vmin=None, vmax=None, cmap='magma_r', ignore=-1):
   invalid_mask = arr == ignore
 
   # normalize
@@ -15,5 +16,7 @@ def colorize_depth(arr, vmin=0.1, vmax=10, cmap='plasma_r', ignore=-1):
   arr = cmapper(arr, bytes=True)  # (nxmx4)
   arr[invalid_mask] = 255
   img = arr[:, :, :3]
+
+  img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
   return img
