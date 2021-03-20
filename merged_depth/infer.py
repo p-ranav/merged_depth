@@ -380,9 +380,9 @@ class InferenceEngine:
     disp_resized = torch.nn.functional.interpolate(
         disp, (original_height, original_width), mode="bilinear", align_corners=False)
 
-    scaled_disp, _ = disp_to_depth(disp, 0.1, 10)
+    _, predicted_depth = disp_to_depth(disp, 0.1, 10)
 
-    predicted_depth = scaled_disp.detach().cpu().numpy()
+    predicted_depth = predicted_depth.detach().cpu().numpy()
     predicted_depth = predicted_depth.squeeze()
     predicted_depth = cv2.resize(predicted_depth, (original_width, original_height))
     return predicted_depth
@@ -420,7 +420,7 @@ class InferenceEngine:
     print(np.min(adabins_nyu_prediction), np.min(monodepth2_depth_prediction))
 
     average_depth = (adabins_nyu_prediction + adabins_nyu_prediction +
-      adabins_kitti_prediction + diverse_depth_prediction + midas_depth_prediction + sgdepth_depth_prediction + monodepth2_depth_prediction) / 7
+      adabins_kitti_prediction + diverse_depth_prediction + midas_depth_prediction + sgdepth_depth_prediction) / 6
 
     return original, average_depth, colorize_depth(average_depth)
 
