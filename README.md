@@ -6,6 +6,8 @@
 
 ## Quick Start
 
+First, download the pretrained models using the `download_models` script. Next, run the `infer` script - this will run on all images in `test/input` and save the results to `test/output`. 
+
 ```console
 $ python3 -m merged_depth.utils.download_models
 $ python3 -m merged_depth.infer
