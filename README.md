@@ -16,7 +16,7 @@ python3 -m merged_depth.utils.download_models
 python3 -m merged_depth.infer
 ```
 
-The results include (1) a `_depth.npy` file that you can load, (2) a `_stacked.png` file that shows the original and colorized depth images. 
+The results include (1) a `_depth.npy` file that you can load (see `load_and_display_depth.py`), (2) a `_stacked.png` file that shows the original and colorized depth images. 
 
 To run the predictor on a single input, use `infer_single.py`
 
