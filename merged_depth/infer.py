@@ -53,9 +53,8 @@ class InferenceEngine:
   def __init__(self):
     self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Setup AdaBins models
+    # Setup AdaBins model
     self.adabins_nyu_infer_helper = InferenceHelper(dataset='nyu', device=self.device)
-    self.adabins_kitti_infer_helper = InferenceHelper(dataset='kitti', device=self.device)
 
     # Setup DiverseDepth model
     class DiverseDepthArgs:
@@ -153,12 +152,6 @@ class InferenceEngine:
 
   def adabins_nyu_predict(self, image):
     _, predicted_depth = self.adabins_nyu_infer_helper.predict_pil(image)
-    predicted_depth = predicted_depth.squeeze()
-    predicted_depth = cv2.resize(predicted_depth, (image.width, image.height))
-    return predicted_depth
-
-  def adabins_kitti_predict(self, image):
-    _, predicted_depth = self.adabins_kitti_infer_helper.predict_pil(image)
     predicted_depth = predicted_depth.squeeze()
     predicted_depth = cv2.resize(predicted_depth, (image.width, image.height))
     return predicted_depth
@@ -391,13 +384,10 @@ class InferenceEngine:
     image = Image.open(path)
     original = cv2.imread(path)
 
-    # Predict with AdaBins pre-trained models
+    # Predict with AdaBins pre-trained model
     adabins_nyu_prediction = self.adabins_nyu_predict(image)
     adabins_nyu_prediction = (adabins_nyu_prediction - np.min(adabins_nyu_prediction)) / (np.max(adabins_nyu_prediction) - np.min(adabins_nyu_prediction))
     
-    adabins_kitti_prediction = self.adabins_kitti_predict(image)
-    adabins_kitti_prediction = (adabins_kitti_prediction - np.min(adabins_kitti_prediction)) / (np.max(adabins_kitti_prediction) - np.min(adabins_kitti_prediction))
-
     # Predict with DiverseDepth model
     diverse_depth_prediction = self.diverse_depth_predict(image)
     diverse_depth_prediction = (diverse_depth_prediction - np.min(diverse_depth_prediction)) / (np.max(diverse_depth_prediction) - np.min(diverse_depth_prediction))
@@ -414,25 +404,14 @@ class InferenceEngine:
     # Predict with monodepth2
     monodepth2_depth_prediction = self.monodepth2_predict(image)
     monodepth2_depth_prediction = (monodepth2_depth_prediction - np.min(monodepth2_depth_prediction)) / (np.max(monodepth2_depth_prediction) - np.min(monodepth2_depth_prediction))
-    # monodepth2_depth_prediction *= adabins_avg_max / np.max(monodepth2_depth_prediction)
 
     average_depth = (
       adabins_nyu_prediction +
-      adabins_kitti_prediction +
       diverse_depth_prediction +
       midas_depth_prediction * 5 +
       sgdepth_depth_prediction +
       monodepth2_depth_prediction
-    ) / 10
-
-    print("AdaBins NYU   [" + str(np.min(adabins_nyu_prediction)) + ", " + str(np.max(adabins_nyu_prediction)) + "]")
-    print("AdaBins KITTI [" + str(np.min(adabins_kitti_prediction)) + ", " + str(np.max(adabins_kitti_prediction)) + "]")
-    print("DiverseDepth  [" + str(np.min(diverse_depth_prediction)) + ", " + str(np.max(diverse_depth_prediction)) + "]")
-    print("MiDaS         [" + str(np.min(midas_depth_prediction)) + ", " + str(np.max(midas_depth_prediction)) + "]")
-    print("SGDepth       [" + str(np.min(sgdepth_depth_prediction)) + ", " + str(np.max(sgdepth_depth_prediction)) + "]")
-    print("Monodepth2    [" + str(np.min(monodepth2_depth_prediction)) + ", " + str(np.max(monodepth2_depth_prediction)) + "]")
-    print("Weighted Avg. [" + str(np.min(average_depth)) + ", " + str(np.max(average_depth)) + "]")
-    print("--------------------------------------------------------")
+    ) / 9
 
     return original, average_depth, colorize_depth(average_depth)
 
