@@ -18,10 +18,9 @@ $ python3 -m merged_depth.infer
 
 | <!-- -->                       | <!-- -->                        | <!-- -->                        | <!-- -->                        |
 :-------------------------------:|:-------------------------------:|:-------------------------------:|:-------------------------------:|
-![](./test/output/00_depth.png)  | ![](./test/output/05_depth.png) | ![](./test/output/06_depth.png) | ![](./test/output/07_depth.png) |
-![](./test/output/08_depth.png)  | ![](./test/output/10_depth.png) | ![](./test/output/12_depth.png) | ![](./test/output/13_depth.png) |
+![](./test/output/00_depth.png)  | ![](./test/output/01_depth.png) | ![](./test/output/05_depth.png) | ![](./test/output/06_depth.png) |
+![](./test/output/07_depth.png)  | ![](./test/output/08_depth.png) | ![](./test/output/10_depth.png) | ![](./test/output/12_depth.png) |
 ![](./test/output/13_depth.png)  | ![](./test/output/16_depth.png) | ![](./test/output/17_depth.png) | ![](./test/output/18_depth.png) |
-![](./test/output/23_depth.png)  | ![](./test/output/20_depth.png) | ![](./test/output/25_depth.png) | ![](./test/output/27_depth.png) |
 ![](./test/output/23_depth.png)  | ![](./test/output/20_depth.png) | ![](./test/output/25_depth.png) | ![](./test/output/27_depth.png) |
 ![](./test/output/28_depth.png)  | ![](./test/output/29_depth.png) | ![](./test/output/30_depth.png) | ![](./test/output/31_depth.png) |
 ![](./test/output/32_depth.png)  | ![](./test/output/33_depth.png) | ![](./test/output/34_depth.png) | ![](./test/output/36_depth.png) |
