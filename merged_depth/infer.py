@@ -223,7 +223,7 @@ class InferenceEngine:
       depth_max = prediction.max()
 
       prediction = (prediction - depth_min) / (depth_max - depth_min)
-      prediction *= 10
+      # prediction *= 10
 
       return prediction
 
@@ -393,16 +393,14 @@ class InferenceEngine:
 
     # Predict with AdaBins pre-trained models
     adabins_nyu_prediction = self.adabins_nyu_predict(image)
+    adabins_nyu_prediction = (adabins_nyu_prediction - np.min(adabins_nyu_prediction)) / (np.max(adabins_nyu_prediction) - np.min(adabins_nyu_prediction))
+    
     adabins_kitti_prediction = self.adabins_kitti_predict(image)
+    adabins_kitti_prediction = (adabins_kitti_prediction - np.min(adabins_kitti_prediction)) / (np.max(adabins_kitti_prediction) - np.min(adabins_kitti_prediction))
 
     # Predict with DiverseDepth model
     diverse_depth_prediction = self.diverse_depth_predict(image)
-    adabins_nyu_max = np.max(adabins_nyu_prediction)
-    adabins_kitti_max = np.max(adabins_kitti_prediction)
-    adabins_avg_max = (adabins_nyu_max + adabins_kitti_max) / 2
-    diverse_depth_max = np.max(diverse_depth_prediction)
-    scale_factor = adabins_avg_max / diverse_depth_max
-    diverse_depth_prediction *= scale_factor
+    diverse_depth_prediction = (diverse_depth_prediction - np.min(diverse_depth_prediction)) / (np.max(diverse_depth_prediction) - np.min(diverse_depth_prediction))
 
     # Predict with MiDaS model
     midas_depth_prediction = self.midas_predict(path)
@@ -411,10 +409,12 @@ class InferenceEngine:
     # Predict with SGDepth
     sgdepth_depth_prediction = self.sgdepth_predict(image)
     sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (adabins_nyu_prediction.shape[1], adabins_nyu_prediction.shape[0]))
+    sgdepth_depth_prediction = (sgdepth_depth_prediction - np.min(sgdepth_depth_prediction)) / (np.max(sgdepth_depth_prediction) - np.min(sgdepth_depth_prediction))
 
     # Predict with monodepth2
     monodepth2_depth_prediction = self.monodepth2_predict(image)
-    monodepth2_depth_prediction *= adabins_avg_max / np.max(monodepth2_depth_prediction)
+    monodepth2_depth_prediction = (monodepth2_depth_prediction - np.min(monodepth2_depth_prediction)) / (np.max(monodepth2_depth_prediction) - np.min(monodepth2_depth_prediction))
+    # monodepth2_depth_prediction *= adabins_avg_max / np.max(monodepth2_depth_prediction)
 
     average_depth = (
       adabins_nyu_prediction +
@@ -424,6 +424,15 @@ class InferenceEngine:
       sgdepth_depth_prediction +
       monodepth2_depth_prediction
     ) / 10
+
+    print("AdaBins NYU   [" + str(np.min(adabins_nyu_prediction)) + ", " + str(np.max(adabins_nyu_prediction)) + "]")
+    print("AdaBins KITTI [" + str(np.min(adabins_kitti_prediction)) + ", " + str(np.max(adabins_kitti_prediction)) + "]")
+    print("DiverseDepth  [" + str(np.min(diverse_depth_prediction)) + ", " + str(np.max(diverse_depth_prediction)) + "]")
+    print("MiDaS         [" + str(np.min(midas_depth_prediction)) + ", " + str(np.max(midas_depth_prediction)) + "]")
+    print("SGDepth       [" + str(np.min(sgdepth_depth_prediction)) + ", " + str(np.max(sgdepth_depth_prediction)) + "]")
+    print("Monodepth2    [" + str(np.min(monodepth2_depth_prediction)) + ", " + str(np.max(monodepth2_depth_prediction)) + "]")
+    print("Weighted Avg. [" + str(np.min(average_depth)) + ", " + str(np.max(average_depth)) + "]")
+    print("--------------------------------------------------------")
 
     return original, average_depth, colorize_depth(average_depth)
 
