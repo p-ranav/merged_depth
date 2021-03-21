@@ -6,12 +6,18 @@
 
 ## Quick Start
 
-First, download the pretrained models using the `download_models` script. Next, run the `infer` script - this will run on all images in `test/input` and save the results to `test/output`. You can use [`InferenceEngine.predict_depth(image)`](https://github.com/p-ranav/merged_depth/blob/master/merged_depth/infer.py#L335) if you just want to run the inference on a single image
+First, download the pretrained models using the `download_models` script. Next, run the `infer` script - this will run on all images in `test/input` and save the results to `test/output`. 
 
 ```console
 $ python3 -m pip install -r requirements.txt
 $ python3 -m merged_depth.utils.download_models
 $ python3 -m merged_depth.infer
+```
+
+To run the predictor on a single input, use `infer_single.py`
+
+```console
+$ python3 -m merged_depth.infer_single ~/foo/bar/test.png
 ```
 
 ## Sample Output
