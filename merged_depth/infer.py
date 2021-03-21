@@ -414,13 +414,16 @@ class InferenceEngine:
 
     # Predict with monodepth2
     monodepth2_depth_prediction = self.monodepth2_predict(image)
-    print(adabins_nyu_prediction)
-    print(monodepth2_depth_prediction)
-    print(adabins_avg_max, np.max(monodepth2_depth_prediction))
-    print(np.min(adabins_nyu_prediction), np.min(monodepth2_depth_prediction))
+    monodepth2_depth_prediction *= adabins_avg_max / np.max(monodepth2_depth_prediction)
 
-    average_depth = (adabins_nyu_prediction + adabins_nyu_prediction +
-      adabins_kitti_prediction + diverse_depth_prediction + midas_depth_prediction + sgdepth_depth_prediction) / 6
+    average_depth = (
+      adabins_nyu_prediction +
+      adabins_kitti_prediction +
+      diverse_depth_prediction +
+      midas_depth_prediction * 5 +
+      sgdepth_depth_prediction +
+      monodepth2_depth_prediction
+    ) / 10
 
     return original, average_depth, colorize_depth(average_depth)
 
