@@ -1,4 +1,5 @@
 import matplotlib
+import matplotlib.cm
 import cv2
 
 def colorize_depth(arr, vmin=None, vmax=None, cmap='magma_r', ignore=-1):

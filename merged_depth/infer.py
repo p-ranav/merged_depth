@@ -441,10 +441,16 @@ def main():
         path = os.path.join(dirpath, file)
         filename_minus_ext, ext = os.path.splitext(file)
 
+        # Predict depth
         image, depth, colorized_depth = engine.predict_depth(path)
-        display = np.vstack([image, colorized_depth])
 
-        cv2.imwrite(os.path.join("./test/output", filename_minus_ext + "_depth" + ext), display)
+        # Save numpy array of depth values
+        with open(os.path.join("./test/output", filename_minus_ext + "_depth.npy"), 'wb') as file:
+          np.save(file, depth)
+
+        # Save stacked colorized depth result
+        display = np.vstack([image, colorized_depth])
+        cv2.imwrite(os.path.join("./test/output", filename_minus_ext + "_stacked" + ext), display)
 
 if __name__ == '__main__':
   main()
