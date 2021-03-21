@@ -412,7 +412,6 @@ class InferenceEngine:
     print_min_max("MiDaS", midas_depth_prediction)
     print_min_max("SGDepth", sgdepth_depth_prediction)
     print_min_max("Monodepth2", monodepth2_depth_prediction)
-    print("---------------------------------------")
 
     average_depth = (
       adabins_nyu_prediction +
@@ -421,6 +420,9 @@ class InferenceEngine:
       sgdepth_depth_prediction +
       monodepth2_depth_prediction
     ) / 9
+
+    print_min_max("Average", average_depth)
+    print("---------------------------------------")
 
     return original, average_depth, colorize_depth(average_depth)
 
