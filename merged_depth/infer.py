@@ -386,24 +386,33 @@ class InferenceEngine:
 
     # Predict with AdaBins pre-trained model
     adabins_nyu_prediction = self.adabins_nyu_predict(image)
-    adabins_nyu_prediction = (adabins_nyu_prediction - np.min(adabins_nyu_prediction)) / (np.max(adabins_nyu_prediction) - np.min(adabins_nyu_prediction))
     
     # Predict with DiverseDepth model
     diverse_depth_prediction = self.diverse_depth_predict(image)
-    diverse_depth_prediction = (diverse_depth_prediction - np.min(diverse_depth_prediction)) / (np.max(diverse_depth_prediction) - np.min(diverse_depth_prediction))
+    adabins_nyu_max = np.max(adabins_nyu_prediction)
+    diverse_depth_prediction *= (adabins_nyu_max / np.max(diverse_depth_prediction))
 
     # Predict with MiDaS model
     midas_depth_prediction = self.midas_predict(path)
     midas_depth_prediction = (midas_depth_prediction - np.max(midas_depth_prediction)) * -1
+    midas_depth_prediction *= (adabins_nyu_max / np.max(midas_depth_prediction))    
 
     # Predict with SGDepth
     sgdepth_depth_prediction = self.sgdepth_predict(image)
     sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (adabins_nyu_prediction.shape[1], adabins_nyu_prediction.shape[0]))
-    sgdepth_depth_prediction = (sgdepth_depth_prediction - np.min(sgdepth_depth_prediction)) / (np.max(sgdepth_depth_prediction) - np.min(sgdepth_depth_prediction))
 
     # Predict with monodepth2
     monodepth2_depth_prediction = self.monodepth2_predict(image)
-    monodepth2_depth_prediction = (monodepth2_depth_prediction - np.min(monodepth2_depth_prediction)) / (np.max(monodepth2_depth_prediction) - np.min(monodepth2_depth_prediction))
+
+    def print_min_max(label, d):
+      print(label, np.min(d), np.max(d))
+
+    print_min_max("Adabins", adabins_nyu_prediction)
+    print_min_max("DiverseDepth", diverse_depth_prediction)
+    print_min_max("MiDaS", midas_depth_prediction)
+    print_min_max("SGDepth", sgdepth_depth_prediction)
+    print_min_max("Monodepth2", monodepth2_depth_prediction)
+    print("---------------------------------------")
 
     average_depth = (
       adabins_nyu_prediction +
