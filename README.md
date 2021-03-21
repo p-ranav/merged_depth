@@ -24,11 +24,11 @@ python3 -m merged_depth.infer_single ~/foo/bar/test.png
 
 | <!-- -->                       | <!-- -->                        | <!-- -->                        | <!-- -->                        |
 :-------------------------------:|:-------------------------------:|:-------------------------------:|:-------------------------------:|
-![](./test/output/00_depth.png)  | ![](./test/output/01_depth.png) | ![](./test/output/05_depth.png) | ![](./test/output/06_depth.png) |
-![](./test/output/07_depth.png)  | ![](./test/output/08_depth.png) | ![](./test/output/10_depth.png) | ![](./test/output/12_depth.png) |
-![](./test/output/13_depth.png)  | ![](./test/output/16_depth.png) | ![](./test/output/17_depth.png) | ![](./test/output/18_depth.png) |
-![](./test/output/23_depth.png)  | ![](./test/output/20_depth.png) | ![](./test/output/25_depth.png) | ![](./test/output/27_depth.png) |
-![](./test/output/28_depth.png)  | ![](./test/output/29_depth.png) | ![](./test/output/30_depth.png) | ![](./test/output/31_depth.png) |
-![](./test/output/32_depth.png)  | ![](./test/output/33_depth.png) | ![](./test/output/34_depth.png) | ![](./test/output/36_depth.png) |
-![](./test/output/37_depth.png)  | ![](./test/output/39_depth.png) | ![](./test/output/40_depth.png) | ![](./test/output/42_depth.png) |
-![](./test/output/43_depth.png)  | ![](./test/output/45_depth.png) | ![](./test/output/47_depth.png) | ![](./test/output/49_depth.png) |
+![](./test/output/00_stacked.png)  | ![](./test/output/01_stacked.png) | ![](./test/output/05_stacked.png) | ![](./test/output/06_stacked.png) |
+![](./test/output/07_stacked.png)  | ![](./test/output/08_stacked.png) | ![](./test/output/10_stacked.png) | ![](./test/output/12_stacked.png) |
+![](./test/output/13_stacked.png)  | ![](./test/output/16_stacked.png) | ![](./test/output/17_stacked.png) | ![](./test/output/18_stacked.png) |
+![](./test/output/23_stacked.png)  | ![](./test/output/20_stacked.png) | ![](./test/output/25_stacked.png) | ![](./test/output/27_stacked.png) |
+![](./test/output/28_stacked.png)  | ![](./test/output/29_stacked.png) | ![](./test/output/30_stacked.png) | ![](./test/output/31_stacked.png) |
+![](./test/output/32_stacked.png)  | ![](./test/output/33_stacked.png) | ![](./test/output/34_stacked.png) | ![](./test/output/36_stacked.png) |
+![](./test/output/37_stacked.png)  | ![](./test/output/39_stacked.png) | ![](./test/output/40_stacked.png) | ![](./test/output/42_stacked.png) |
+![](./test/output/43_stacked.png)  | ![](./test/output/45_stacked.png) | ![](./test/output/47_stacked.png) | ![](./test/output/49_stacked.png) |
