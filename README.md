@@ -16,16 +16,14 @@ $ python3 -m merged_depth.infer
 
 ## Sample Output
 
-| <!-- -->    | <!-- -->    |
-:-------------------------:|:-------------------------:
-![](./test/output/00_depth.png)  |  ![](./test/output/07_depth.png)
-![](./test/output/08_depth.png)  |  ![](./test/output/13_depth.png)
-![](./test/output/16_depth.png)  |  ![](./test/output/20_depth.png)
-![](./test/output/21_depth.png)  |  ![](./test/output/25_depth.png)
-![](./test/output/28_depth.png)  |  ![](./test/output/30_depth.png)
-![](./test/output/31_depth.png)  |  ![](./test/output/32_depth.png)
-![](./test/output/33_depth.png)  |  ![](./test/output/35_depth.png)
-![](./test/output/36_depth.png)  |  ![](./test/output/37_depth.png)
-![](./test/output/38_depth.png)  |  ![](./test/output/39_depth.png)
-![](./test/output/40_depth.png)  |  ![](./test/output/42_depth.png)
-![](./test/output/43_depth.png)  |  ![](./test/output/48_depth.png)
+| <!-- -->                       | <!-- -->                        | <!-- -->                        | <!-- -->                        |
+:-------------------------------:|:-------------------------------:|:-------------------------------:|:-------------------------------:|
+![](./test/output/00_depth.png)  | ![](./test/output/05_depth.png) | ![](./test/output/06_depth.png) | ![](./test/output/07_depth.png) |
+![](./test/output/08_depth.png)  | ![](./test/output/10_depth.png) | ![](./test/output/12_depth.png) | ![](./test/output/13_depth.png) |
+![](./test/output/13_depth.png)  | ![](./test/output/16_depth.png) | ![](./test/output/17_depth.png) | ![](./test/output/18_depth.png) |
+![](./test/output/23_depth.png)  | ![](./test/output/20_depth.png) | ![](./test/output/25_depth.png) | ![](./test/output/27_depth.png) |
+![](./test/output/23_depth.png)  | ![](./test/output/20_depth.png) | ![](./test/output/25_depth.png) | ![](./test/output/27_depth.png) |
+![](./test/output/28_depth.png)  | ![](./test/output/29_depth.png) | ![](./test/output/30_depth.png) | ![](./test/output/31_depth.png) |
+![](./test/output/32_depth.png)  | ![](./test/output/33_depth.png) | ![](./test/output/34_depth.png) | ![](./test/output/36_depth.png) |
+![](./test/output/37_depth.png)  | ![](./test/output/39_depth.png) | ![](./test/output/40_depth.png) | ![](./test/output/42_depth.png) |
+![](./test/output/43_depth.png)  | ![](./test/output/45_depth.png) | ![](./test/output/47_depth.png) | ![](./test/output/49_depth.png) |
