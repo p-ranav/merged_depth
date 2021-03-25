@@ -15,15 +15,19 @@ def main(path):
 
   engine = InferenceEngine()
   for path in tqdm(inputs):
-    dirname = os.path.dirname(path)
-    base = os.path.basename(path)
-    filename_minus_ext, ext = os.path.splitext(base)
+    try:
+      dirname = os.path.dirname(path)
+      base = os.path.basename(path)
+      filename_minus_ext, ext = os.path.splitext(base)
 
-    image, depth, colorized_depth = engine.predict_depth(path)
+      image, depth, colorized_depth = engine.predict_depth(path)
 
-    # Save numpy array of depth values
-    with open(os.path.join(dirname, filename_minus_ext + "_depth.npz"), "wb") as npz:
-      np.savez_compressed(npz, depth)
+      # Save numpy array of color+depth values
+      save_path = os.path.join(dirname, filename_minus_ext + ".npz")
+      np.savez_compressed(save_path, color=image, depth=depth)
+    except Exception as e:
+      print("Exception thrown while processing image", path)
+      print(e)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run the depth predictor recursively on all .jpeg/.png files in directory (ideal for datasets)')
