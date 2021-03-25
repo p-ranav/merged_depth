@@ -23,7 +23,7 @@ def main(path):
 
     # Save numpy array of depth values
     with open(os.path.join(dirname, filename_minus_ext + "_depth.npz"), "wb") as npz:
-      np.save(npz, depth)
+      np.savez_compressed(npz, depth)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run the depth predictor recursively on all .jpeg/.png files in directory (ideal for datasets)')
