@@ -407,11 +407,11 @@ class InferenceEngine:
     def print_min_max(label, d):
       print(label, np.min(d), np.max(d))
 
-    print_min_max("Adabins", adabins_nyu_prediction)
-    print_min_max("DiverseDepth", diverse_depth_prediction)
-    print_min_max("MiDaS", midas_depth_prediction)
-    print_min_max("SGDepth", sgdepth_depth_prediction)
-    print_min_max("Monodepth2", monodepth2_depth_prediction)
+    # print_min_max("Adabins", adabins_nyu_prediction)
+    # print_min_max("DiverseDepth", diverse_depth_prediction)
+    # print_min_max("MiDaS", midas_depth_prediction)
+    # print_min_max("SGDepth", sgdepth_depth_prediction)
+    # print_min_max("Monodepth2", monodepth2_depth_prediction)
 
     average_depth = (
       adabins_nyu_prediction +
@@ -421,8 +421,8 @@ class InferenceEngine:
       monodepth2_depth_prediction
     ) / 9
 
-    print_min_max("Average", average_depth)
-    print("---------------------------------------")
+    # print_min_max("Average", average_depth)
+    # print("---------------------------------------")
 
     return original, average_depth, colorize_depth(average_depth)
 
