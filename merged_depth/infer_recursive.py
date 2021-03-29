@@ -6,7 +6,7 @@ from .infer import InferenceEngine
 from tqdm import tqdm
 import torch
 
-def main(path):
+def main(path, delete_original):
 
   inputs = []
   for root, dirs, files in os.walk(path, topdown=False):
@@ -27,6 +27,10 @@ def main(path):
         # Save numpy array of color+depth values
         save_path = os.path.join(dirname, filename_minus_ext + ".npz")
         np.savez_compressed(save_path, color=image, depth=depth)
+
+        if delete_original:
+          # Remove original PNG image
+          os.remove(path)
       except Exception as e:
         print("Exception thrown while processing image", path)
         print(e)
@@ -34,5 +38,6 @@ def main(path):
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run the depth predictor recursively on all .jpeg/.png files in directory (ideal for datasets)')
   parser.add_argument('path', metavar='path', type=str, help='path to dataset')
+  parser.add_argument('-d', '--delete-original', default=False, action='store_true', help='Delete original .jpeg/.png after inference (default=False)')
   args = parser.parse_args()
-  main(args.path)
+  main(args.path, args.delete_original)
