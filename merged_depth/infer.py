@@ -405,7 +405,7 @@ class InferenceEngine:
     monodepth2_depth_prediction = self.monodepth2_predict(image)
 
     def print_min_max(label, d):
-      print(label, np.min(d), np.max(d))
+      print(label, "[" + str(np.min(d)) + ", " + str(np.max(d)) + "]")
 
     # print_min_max("Adabins", adabins_nyu_prediction)
     # print_min_max("DiverseDepth", diverse_depth_prediction)

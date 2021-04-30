@@ -69,7 +69,7 @@ class InferenceHelper:
         self.device = device
         if dataset == 'nyu':
             self.min_depth = 1e-3
-            self.max_depth = 20
+            self.max_depth = 80# 20
             self.saving_factor = 1000  # used to save in 16 bit
             model = UnetAdaptiveBins.build(n_bins=256, min_val=self.min_depth, max_val=self.max_depth)
             pretrained_path = "./pretrained/AdaBins_nyu.pt"

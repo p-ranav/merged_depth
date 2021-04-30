@@ -16,6 +16,17 @@ python3 -m merged_depth.utils.download_models
 python3 -m merged_depth.infer
 ```
 
+If you're using [Anaconda3](https://www.anaconda.com/products/individual), the following has been tested to work (in Windows):
+
+```bash
+conda create --name merged_depth python=3.6
+conda activate merged_depth
+conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=11.1 -c pytorch -c conda-forge
+python3 -m pip install -r requirements.txt
+python3 -m merged_depth.utils.download_models
+python3 -m merged_depth.infer
+```
+
 The results include (1) a `_depth.npy` file that you can load (see `load_and_display_depth.py`), (2) a `_stacked.png` file that shows the original and colorized depth images. 
 
 To run the predictor on a single input, use `infer_single.py`
@@ -25,6 +36,8 @@ python3 -m merged_depth.infer_single ~/foo/bar/test.png
 ```
 
 ## Sample Output
+
+The output depth is absolute depth in meters. The colorizer normalizes the output in range `[depth_min, depth_max]` for each image.
 
 | <!-- -->                       | <!-- -->                        | <!-- -->                        | <!-- -->                        |
 :-------------------------------:|:-------------------------------:|:-------------------------------:|:-------------------------------:|
