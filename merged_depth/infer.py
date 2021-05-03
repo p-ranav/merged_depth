@@ -55,6 +55,7 @@ class InferenceEngine:
 
     # Setup AdaBins model
     self.adabins_nyu_infer_helper = InferenceHelper(dataset='nyu', device=self.device)
+    self.adabins_kitti_infer_helper = InferenceHelper(dataset='kitti', device=self.device)
 
     # Setup DiverseDepth model
     class DiverseDepthArgs:
@@ -152,6 +153,12 @@ class InferenceEngine:
 
   def adabins_nyu_predict(self, image):
     _, predicted_depth = self.adabins_nyu_infer_helper.predict_pil(image)
+    predicted_depth = predicted_depth.squeeze()
+    predicted_depth = cv2.resize(predicted_depth, (image.width, image.height))
+    return predicted_depth
+
+  def adabins_kitti_predict(self, image):
+    _, predicted_depth = self.adabins_kitti_infer_helper.predict_pil(image)
     predicted_depth = predicted_depth.squeeze()
     predicted_depth = cv2.resize(predicted_depth, (image.width, image.height))
     return predicted_depth
@@ -384,22 +391,25 @@ class InferenceEngine:
     image = Image.open(path)
     original = cv2.imread(path)
 
-    # Predict with AdaBins pre-trained model
+    # Predict with AdaBins NYU pre-trained model
     adabins_nyu_prediction = self.adabins_nyu_predict(image)
+    adabins_nyu_max = np.max(adabins_nyu_prediction)
+    result_shape = adabins_nyu_prediction.shape
+
+    # Predict with AdaBins KITTI pre-trained model
+    adabins_kitti_prediction = self.adabins_kitti_predict(image)
+    adabins_kitti_max = np.max(adabins_kitti_prediction)
     
     # Predict with DiverseDepth model
     diverse_depth_prediction = self.diverse_depth_predict(image)
-    adabins_nyu_max = np.max(adabins_nyu_prediction)
-    diverse_depth_prediction *= (adabins_nyu_max / np.max(diverse_depth_prediction))
 
     # Predict with MiDaS model
     midas_depth_prediction = self.midas_predict(path)
     midas_depth_prediction = (midas_depth_prediction - np.max(midas_depth_prediction)) * -1
-    midas_depth_prediction *= (adabins_nyu_max / np.max(midas_depth_prediction))    
 
     # Predict with SGDepth
     sgdepth_depth_prediction = self.sgdepth_predict(image)
-    sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (adabins_nyu_prediction.shape[1], adabins_nyu_prediction.shape[0]))
+    sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (result_shape[1], result_shape[0]))
 
     # Predict with monodepth2
     monodepth2_depth_prediction = self.monodepth2_predict(image)
@@ -407,24 +417,38 @@ class InferenceEngine:
     def print_min_max(label, d):
       print(label, "[" + str(np.min(d)) + ", " + str(np.max(d)) + "]")
 
-    # print_min_max("Adabins", adabins_nyu_prediction)
+    if adabins_nyu_max <= 6: # ~19ft
+      # Maybe indoor scene
+      diverse_depth_prediction *= (adabins_nyu_max / np.max(diverse_depth_prediction))
+      midas_depth_prediction *= (adabins_nyu_max / np.max(midas_depth_prediction))
+      average_depth = (
+        adabins_nyu_prediction + 
+        diverse_depth_prediction +
+        midas_depth_prediction * 5 +
+        sgdepth_depth_prediction +
+        monodepth2_depth_prediction
+      ) / 9
+    else:
+      # Maybe outdoor scene
+      diverse_depth_prediction *= (adabins_kitti_max / np.max(diverse_depth_prediction))
+      midas_depth_prediction *= (adabins_nyu_max / np.max(midas_depth_prediction))
+      average_depth = (
+        diverse_depth_prediction +
+        midas_depth_prediction * 5 +
+        sgdepth_depth_prediction +
+        monodepth2_depth_prediction
+      ) / 8
+
+    # print_min_max("Adabins NYU", adabins_nyu_prediction)
+    # print_min_max("Adabins KITTI", adabins_kitti_prediction)
     # print_min_max("DiverseDepth", diverse_depth_prediction)
     # print_min_max("MiDaS", midas_depth_prediction)
     # print_min_max("SGDepth", sgdepth_depth_prediction)
     # print_min_max("Monodepth2", monodepth2_depth_prediction)
-
-    average_depth = (
-      adabins_nyu_prediction +
-      diverse_depth_prediction +
-      midas_depth_prediction * 5 +
-      sgdepth_depth_prediction +
-      monodepth2_depth_prediction
-    ) / 9
-
     # print_min_max("Average", average_depth)
     # print("---------------------------------------")
 
-    return original, average_depth, colorize_depth(average_depth)
+    return original, average_depth, colorize_depth(average_depth, 0, 20)
 
 def main():
 
