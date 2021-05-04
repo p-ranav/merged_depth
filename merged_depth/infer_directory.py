@@ -28,13 +28,13 @@ def main(path):
 
         image, depth, colorized_depth = engine.predict_depth(input_image)
 
-        # Save numpy array of depth values
-        with open(os.path.join(dirname, filename_minus_ext + "_depth.npy"), 'wb') as file:
-          np.save(file, depth)
+        # # Save numpy array of depth values
+        # with open(os.path.join(dirname, filename_minus_ext + "_depth.npy"), 'wb') as file:
+        #   np.save(file, depth)
 
         # Save stacked colorized depth result
         display = np.vstack([image, colorized_depth])
-        cv2.imwrite(os.path.join(dirname, filename_minus_ext + "_stacked" + ext), display)
+        cv2.imwrite(os.path.join(dirname, "stacked_" + filename_minus_ext + ext), display)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Run the depth predictor on a directory of images')

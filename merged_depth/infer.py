@@ -235,7 +235,7 @@ class InferenceEngine:
       self.model_path = "./pretrained/SGDepth_full.pth"
       self.num_classes = 20
       self.depth_min = 0.1
-      self.depth_max = 100
+      self.depth_max = 20 #100
       self.all_time = []
 
       self.labels = (('CLS_ROAD', (128, 64, 128)),
@@ -380,7 +380,7 @@ class InferenceEngine:
     disp_resized = torch.nn.functional.interpolate(
         disp, (original_height, original_width), mode="bilinear", align_corners=False)
 
-    _, predicted_depth = disp_to_depth(disp, 0.1, 10)
+    _, predicted_depth = disp_to_depth(disp, 0.1, 20)
 
     predicted_depth = predicted_depth.detach().cpu().numpy()
     predicted_depth = predicted_depth.squeeze()
@@ -417,7 +417,26 @@ class InferenceEngine:
     def print_min_max(label, d):
       print(label, "[" + str(np.min(d)) + ", " + str(np.max(d)) + "]")
 
-    if adabins_nyu_max <= 6: # ~19ft
+    print_min_max("DiverseDepth Unadjusted", diverse_depth_prediction)
+    print_min_max("MiDaS Unadjusted", midas_depth_prediction)
+
+    early_average = (
+      adabins_nyu_prediction +
+      adabins_kitti_prediction +
+      sgdepth_depth_prediction +
+      monodepth2_depth_prediction
+    ) / 4
+    early_average_min = np.min(early_average)
+    early_average_max = np.max(early_average)
+
+    def adjust_range(input, new_range):
+      input_min = np.min(input)
+      input_max = np.max(input)
+      output_min = new_range[0]
+      output_max = new_range[1]
+      return ((input - input_min) / (input_max - input_min)) * (output_max - output_min) + output_min
+
+    if adabins_kitti_max < 30: # ~19ft
       # Maybe indoor scene
       diverse_depth_prediction *= (adabins_nyu_max / np.max(diverse_depth_prediction))
       midas_depth_prediction *= (adabins_nyu_max / np.max(midas_depth_prediction))
@@ -430,23 +449,28 @@ class InferenceEngine:
       ) / 9
     else:
       # Maybe outdoor scene
-      diverse_depth_prediction *= (adabins_kitti_max / np.max(diverse_depth_prediction))
-      midas_depth_prediction *= (adabins_nyu_max / np.max(midas_depth_prediction))
+      diverse_depth_prediction = adjust_range(diverse_depth_prediction, [early_average_min, adabins_nyu_max])
+      midas_depth_prediction = adjust_range(midas_depth_prediction, [early_average_min, adabins_nyu_max])
+      # diverse_depth_prediction *= (early_average_max / np.max(diverse_depth_prediction))
+      # midas_depth_prediction *= (early_average_max / np.max(midas_depth_prediction))
       average_depth = (
+        adabins_nyu_prediction +
         diverse_depth_prediction +
         midas_depth_prediction * 5 +
         sgdepth_depth_prediction +
         monodepth2_depth_prediction
-      ) / 8
+      ) / 9
 
-    # print_min_max("Adabins NYU", adabins_nyu_prediction)
-    # print_min_max("Adabins KITTI", adabins_kitti_prediction)
-    # print_min_max("DiverseDepth", diverse_depth_prediction)
-    # print_min_max("MiDaS", midas_depth_prediction)
-    # print_min_max("SGDepth", sgdepth_depth_prediction)
-    # print_min_max("Monodepth2", monodepth2_depth_prediction)
-    # print_min_max("Average", average_depth)
-    # print("---------------------------------------")
+    average_depth = adjust_range(average_depth, [early_average_min, early_average_max])
+
+    print_min_max("Adabins NYU", adabins_nyu_prediction)
+    print_min_max("Adabins KITTI", adabins_kitti_prediction)
+    print_min_max("DiverseDepth", diverse_depth_prediction)
+    print_min_max("MiDaS", midas_depth_prediction)
+    print_min_max("SGDepth", sgdepth_depth_prediction)
+    print_min_max("Monodepth2", monodepth2_depth_prediction)
+    print_min_max("Average", average_depth)
+    print("---------------------------------------")
 
     return original, average_depth, colorize_depth(average_depth, 0, 20)
 
