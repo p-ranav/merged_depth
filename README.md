@@ -37,7 +37,7 @@ python3 -m merged_depth.infer_single ~/foo/bar/test.png
 
 ## Sample Output
 
-The output depth is absolute depth in meters. The colorizer normalizes the output in range `[depth_min, depth_max]` for each image.
+The output depth is absolute depth in meters. The colorizer range is `[0, 20]`.
 
 | <!-- -->                       | <!-- -->                        | <!-- -->                        | <!-- -->                        |
 :-------------------------------:|:-------------------------------:|:-------------------------------:|:-------------------------------:|
