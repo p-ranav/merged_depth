@@ -409,6 +409,7 @@ class InferenceEngine:
 
     # Predict with SGDepth
     sgdepth_depth_prediction = self.sgdepth_predict(image)
+    sgdepth_depth_prediction = 1 / sgdepth_depth_prediction
     sgdepth_depth_prediction = cv2.resize(sgdepth_depth_prediction, (result_shape[1], result_shape[0]))
 
     # Predict with monodepth2
