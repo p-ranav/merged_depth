@@ -58,7 +58,7 @@ def extract_models(file):
 
 def main():
   pretrained_models = os.path.join("pretrained", "pretrained.zip")
-  download_models(gdrive_fileid="1Pw7PVsPJISzPurkAvYByNY6egDqdPFMt", output_path=pretrained_models)
+  download_models(gdrive_fileid="1SXZP3VEacwIGH6HP_czFKZJCzxX5rYF9", output_path=pretrained_models)
   extract_models(pretrained_models)
 
 if __name__ == '__main__':
